@@ -6,6 +6,8 @@ Implementation of adversarial zero-sum game algorithms for autonomous warehouse 
 
 Two robots (R1 and R2) compete in a warehouse environment to deliver packages to destinations, earning points based on Manhattan distance.
 
+![Game Visualization](example.gif)
+
 **Game Environment:**
 - 5×5 grid with 2 robots, 2 charging stations, 2 packages and 2 destinations
 - Each robot starts with battery charge and no packages
