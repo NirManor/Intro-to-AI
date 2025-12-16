@@ -248,7 +248,9 @@ class WarehouseEnv(object):
         if self.window is None:
             pygame.init()
             self.window = pygame.display.set_mode((720, 720))
+            pygame.display.set_caption("AI Warehouse")
             self.clock = pygame.time.Clock()
+
             self.blue_robot_icon = pygame.image.load("icons/robot_b.jpeg").convert()
             self.red_robot_icon = pygame.image.load("icons/robot_r.jpeg").convert()
             self.blue_robot_package_icon = pygame.image.load("icons/robot_b_package.jpeg").convert()
@@ -261,7 +263,11 @@ class WarehouseEnv(object):
             self.dest_red = pygame.image.load("icons/dest_red.jpeg").convert()
             self.dest_blue = pygame.image.load("icons/dest_blue.jpeg").convert()
 
-
+        # ---- IMPORTANT: process OS events every frame ----
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                raise SystemExit
 
         canvas = pygame.Surface((720, 720))
         canvas.fill((255, 255, 255))
@@ -276,21 +282,10 @@ class WarehouseEnv(object):
         text = font.render('AI warehouse', True, black)
         canvas.blit(text, (215, 20))
 
+        # draw grid
         for x in range(6):
-            pygame.draw.line(
-                canvas,
-                0,
-                (110, x * 100 + 190),
-                (610, x * 100 + 190),
-                width=3,
-            )
-            pygame.draw.line(
-                canvas,
-                0,
-                (x * 100 + 110, 190),
-                (x * 100 + 110, 690),
-                width=3,
-            )
+            pygame.draw.line(canvas, 0, (110, x * 100 + 190), (610, x * 100 + 190), width=3)
+            pygame.draw.line(canvas, 0, (x * 100 + 110, 190), (x * 100 + 110, 690), width=3)
 
         # print board elements
         for y in range(board_size):
@@ -299,57 +294,46 @@ class WarehouseEnv(object):
                 robot = self.get_robot_in(p)
                 package = self.get_package_in(p)
                 charge_station = self.get_charge_station_in(p)
-                package_destination = [package for package in self.packages if package.destination == p and package.on_board]
-                robot_package_destination = [i for i, robot in enumerate(self.robots) if
-                                             robot.package is not None
-                                             and robot.package.destination == p]
+                package_destination = [
+                    package for package in self.packages
+                    if package.destination == p and package.on_board
+                ]
+                robot_package_destination = [
+                    i for i, robot in enumerate(self.robots)
+                    if robot.package is not None and robot.package.destination == p
+                ]
+
                 if robot:
                     if self.robots.index(robot) == 0:
-                        if robot.package is not None:
-                            canvas.blit(pygame.transform.scale(self.blue_robot_package_icon, (95, 95)),
-                                        (x * 100 + 112, y * 100 + 192))
-                        else:
-                            canvas.blit(pygame.transform.scale(self.blue_robot_icon, (95, 95)),
-                                        (x * 100 + 112, y * 100 + 192))
+                        icon = self.blue_robot_package_icon if robot.package else self.blue_robot_icon
                     else:
-                        if robot.package is not None:
-                            canvas.blit(pygame.transform.scale(self.red_robot_package_icon, (95, 95)),
-                                    (x * 100 + 112, y * 100 + 192))
-                        else:
-                            canvas.blit(pygame.transform.scale(self.red_robot_icon, (95, 95)),
-                                        (x * 100 + 112, y * 100 + 192))
+                        icon = self.red_robot_package_icon if robot.package else self.red_robot_icon
+                    canvas.blit(pygame.transform.scale(icon, (95, 95)),
+                                (x * 100 + 112, y * 100 + 192))
+
                 elif charge_station:
                     canvas.blit(pygame.transform.scale(self.charge_stations_icon, (80, 80)),
                                 (x * 100 + 120, y * 100 + 200))
 
                 elif package and package.on_board:
-                    if self.packages.index(package) == 0:
-                        canvas.blit(pygame.transform.scale(self.package_1_icon, (80, 80)),
-                                    (x * 100 + 120, y * 100 + 200))
-                    else:
-                        canvas.blit(pygame.transform.scale(self.package_2_icon, (80, 80)),
-                                    (x * 100 + 120, y * 100 + 200))
+                    icon = self.package_1_icon if self.packages.index(package) == 0 else self.package_2_icon
+                    canvas.blit(pygame.transform.scale(icon, (80, 80)),
+                                (x * 100 + 120, y * 100 + 200))
 
                 elif len(package_destination) > 0:
-                    if self.packages.index(package_destination[0]) == 0:
-                        canvas.blit(pygame.transform.scale(self.dest_1, (80, 80)),
-                                    (x * 100 + 120, y * 100 + 200))
-                    else:
-                        canvas.blit(pygame.transform.scale(self.dest_2, (80, 80)),
-                                    (x * 100 + 120, y * 100 + 200))
+                    icon = self.dest_1 if self.packages.index(package_destination[0]) == 0 else self.dest_2
+                    canvas.blit(pygame.transform.scale(icon, (80, 80)),
+                                (x * 100 + 120, y * 100 + 200))
+
                 elif len(robot_package_destination) > 0:
-                    if robot_package_destination[0] == 0:
-                        canvas.blit(pygame.transform.scale(self.dest_blue, (80, 80)),
-                                    (x * 100 + 120, y * 100 + 200))
-                    else:
-                        canvas.blit(pygame.transform.scale(self.dest_red, (80, 80)),
-                                    (x * 100 + 120, y * 100 + 200))
-
-
+                    icon = self.dest_blue if robot_package_destination[0] == 0 else self.dest_red
+                    canvas.blit(pygame.transform.scale(icon, (80, 80)),
+                                (x * 100 + 120, y * 100 + 200))
 
         self.window.blit(canvas, (0, 0))
-        pygame.display.update()
-        # time.sleep(0.5)
-        self.clock.tick(30)
+        pygame.display.flip()
+
+        # ---- SAFE slowdown (1 visible step per second) ----
+        self.clock.tick(3)
 
 
